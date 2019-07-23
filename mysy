@@ -1,8 +1,9 @@
 #!/bin/bash
+
 tfile=".mysy"
 sfile=".mysy_conf"
-# icloud="~/Library/Mobile\ Documents/com~apple~CloudDocs/"
 icloud="$HOME/iCloud/"
+
 # check if conf files exists
 if  test -f "$tfile"  ||  test -f "$sfile"  ; then
 	cinit=1
@@ -17,7 +18,7 @@ fi
 
 if [ "$1" == "" ]; then
 	# sync
-	if  test -f "$tfile"  &&  test -f "$sfile"  ; then
+	if  [ "$ainit" == 1 ]  ; then
 		dir=$(<"$sfile")
 		idir="$icloud$dir"
 		if test -d "$idir" ; then
@@ -38,7 +39,7 @@ if [ "$1" == "" ]; then
 			done < "$tfile"
 
 		else 
-			echo "target directory does not exists in your iCloud"
+			echo "target directory does not exists in your iCloud. Run doctor "
 		fi
 	else 
 		echo "conf file cannot be found. try init first"
@@ -133,6 +134,7 @@ else
 					fi
 				else
 					echo "file $target does not exist"
+				fi
 			else
 				echo "filename not given"
 			fi
@@ -144,15 +146,16 @@ else
 	elif [ "$argu" == "remove" ]; then
 		if [ "$ainit" == 1 ]; then
 			if [ "$target" != "" ]; then
-				echo "" > ".mysy"
+				echo "" > ".mysy_tmp"
 				while IFS= read -r line
 				do
 					if [ -f "$line" ]; then
 						if [ "$line" != "$target" ]; then 
-							echo "$line" >> ".mysy"
+							echo "$line" >> ".mysy_tmp"
 						fi
 					fi
 				done < "$tfile"
+				mv ".mysy_tmp" "$tfile"
 			else 
 				echo "filename not given"
 			fi
@@ -192,6 +195,38 @@ else
 		  		echo "$line"
 			fi
 		done < "$input"
+
+	elif [ "$argu" == "doctor" ]; then
+		if [ "$ainit" != 1 ]; then
+			echo "configuration file not found. Try init first."
+		else
+
+			# iCloud directory
+			dir=$(<"$sfile")
+			idir="$icloud$dir"
+			if  [ -d "$idir" ] ; then
+				echo "iCloud directory exists."
+			else
+				echo "iCloud directory does not exist."
+				echo "- Creating"
+				mkdir "$idir"
+				echo "- Created"
+			fi
+
+			# sync files
+			echo "" > ".mysy_tmp"
+			while IFS= read -r line
+			do
+				if [ -f "$line" ]; then
+					echo "$line" >> ".mysy_tmp"
+				else
+					echo "file $line does not exist"
+					echo "- removing from config file"
+				fi
+			done < "$tfile"
+			mv ".mysy_tmp" "$tfile"
+		fi
+
 	elif [ "$argu" == "clean" ]; then
 		rm ".mysy"
 		rm ".mysy_conf"
