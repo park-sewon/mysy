@@ -218,8 +218,9 @@ else
 			while IFS= read -r line
 			do
 				if [ -f "$line" ]; then
+					echo "file $line exists"
 					echo "$line" >> ".mysy_tmp"
-				else
+				elif [ "$line" != "" ]; then
 					echo "file $line does not exist"
 					echo "- removing from config file"
 				fi
