@@ -1,0 +1,199 @@
+#!/bin/bash
+tfile=".mysy"
+sfile=".mysy_conf"
+# icloud="~/Library/Mobile\ Documents/com~apple~CloudDocs/"
+icloud="/Users/sewonpark/iCloud/"
+# check if conf files exists
+if  test -f "$tfile"  ||  test -f "$sfile"  ; then
+	cinit=1
+else
+	cinit=0
+fi
+if  test -f "$tfile"  &&  test -f "$sfile"  ; then
+	ainit=1
+else
+	ainit=0
+fi
+
+if [ "$1" == "" ]; then
+	# sync
+	if  test -f "$tfile"  &&  test -f "$sfile"  ; then
+		dir=$(<"$sfile")
+		idir="$icloud$dir"
+		if test -d "$idir" ; then
+			while IFS= read -r line
+			do
+				if [ "$line" != "" ]; then
+					if [ -f "$line" ]; then
+
+						cdir=$(dirname "$idir/$line")
+
+						mkdir -p "$cdir" && cp "$line" "$idir/$line"
+						echo "File $line copied"
+					else
+						echo "warning] File $line does not exist"
+					fi
+				fi		
+
+			done < "$tfile"
+
+		else 
+			echo "target directory does not exists in your iCloud"
+		fi
+	else 
+		echo "conf file cannot be found. try init first"
+	fi
+else
+	# parsing arguments
+	forced=0
+	while [ "$1" != "" ]; do
+		if [ "$1" == "-f" ]; then
+			forced=1
+		elif [ "$1" == "-d" ]; then
+			target="$1" 
+			shift
+		elif [ "$1" == "add" ]; then
+			target="$2"
+			argu="add"
+			shift
+		elif [ "$1" == "remove" ]; then
+			target="$2"
+			argu="remove"
+			shift
+		elif [ "$1" == "change" ]; then
+			target="$2"
+			argu="change"
+			shift
+		else
+			argu="$1"
+		fi
+		shift
+	done
+
+	# after parsing
+	if [ "$argu" == "init" ]; then
+		# init
+		# set target dir
+		if [ "$target" != "" ]; then
+			idir="$icloud$target"
+		else
+			target="${PWD##*/}"
+			idir="$icloud$target"
+		fi
+
+		if [ "$cinit" == 1 ]; then
+			if [ "$forced" == 1 ]; then
+				if test -d "$idir" ; then
+					echo "caution] Using already existing directory"
+					echo "$target" > ".mysy_conf"
+					echo "" > ".mysy"
+				else
+					mkdir "$idir"
+					echo "$target" > ".mysy_conf"
+					echo "" > ".mysy"
+				fi
+			else
+				echo "configuration files already exists"
+			fi
+		else
+			if test -d "$idir" ; then
+				if [ "$forced" == 1 ]; then
+					echo "caution] Using already existing directory"
+					echo "$target" > ".mysy_conf"
+					echo "" > ".mysy"
+				else	
+					echo "directory already exists."
+				fi
+			else
+				echo "$idir"
+				mkdir "$idir"
+				echo "$target" > ".mysy_conf"
+				echo "" > ".mysy"
+			fi
+		fi
+
+
+	elif [ "$argu" == "add" ]; then
+		# adding file 
+		if [ "$ainit" == 1 ]; then
+			if [ "$target" != "" ]; then
+				if [ -f "$target" ]; then
+
+					flag=0
+					while IFS= read -r line
+					do
+						if [ -f "$line" ]; then
+							if [ "$line" == "$target" ]; then 
+								flag=1
+							fi
+						fi
+					done < "$tfile"
+					if [ "$flag" == 0 ]; then
+						echo "$target" >> ".mysy"
+					fi
+				else
+					echo "file $target does not exist"
+			else
+				echo "filename not given"
+			fi
+		else 
+			echo "configuration file partially missing. Try forced init"
+		fi
+
+
+	elif [ "$argu" == "remove" ]; then
+		if [ "$ainit" == 1 ]; then
+			if [ "$target" != "" ]; then
+				echo "" > ".mysy"
+				while IFS= read -r line
+				do
+					if [ -f "$line" ]; then
+						if [ "$line" != "$target" ]; then 
+							echo "$line" >> ".mysy"
+						fi
+					fi
+				done < "$tfile"
+			else 
+				echo "filename not given"
+			fi
+		else 
+			echo "configuration file partially missing. Try forced init"
+		fi
+
+	elif [ "$argu" == "change" ]; then
+		if [ "$target" != "" ]; then
+			idir="$icloud$target"
+		else
+			target="${PWD##*/}"
+			idir="$icloud$target"
+		fi
+		if [ "$ainit" == 1 ]; then
+			if test -d "$idir" ; then
+				if [ "$forced" == 1 ]; then
+					echo "caution] Using already existing directory"
+					echo "$target" > ".mysy_conf"
+				else
+					echo "directory already exists."
+				fi
+			else
+				echo "$target" > ".mysy_conf"
+			fi
+
+		else
+			echo "configuration file partially missing. Try forced init"
+		fi
+
+
+	elif [ "$argu" == "list" ]; then
+		input=".mysy"
+		while IFS= read -r line
+		do
+			if [ "$line" != "" ]; then
+		  		echo "$line"
+			fi
+		done < "$input"
+	elif [ "$argu" == "clean" ]; then
+		rm ".mysy"
+		rm ".mysy_conf"
+	fi
+fi
