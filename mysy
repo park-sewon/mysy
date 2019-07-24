@@ -2,7 +2,7 @@
 
 tfile=".mysy"
 sfile=".mysy_conf"
-icloud="$HOME/iCloud/"
+icloud="$HOME/iCloud/mysy/"
 
 # check if conf files exists
 if  test -f "$tfile"  ||  test -f "$sfile"  ; then
